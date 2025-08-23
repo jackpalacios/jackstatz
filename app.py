@@ -1,10 +1,15 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 import json
+import time
+import threading
 from datetime import datetime
 from supabase import create_client, Client
 from config import SUPABASE_URL, SUPABASE_KEY
 
 app = Flask(__name__)
+
+# Global variable to store connected SSE clients
+sse_clients = []
 
 # Initialize Supabase client
 try:
@@ -55,18 +60,18 @@ basketball_games = []
 # Live game data storage (fallback if Supabase is not available)
 default_live_game_data = {
     "team1": [
-        {"jersey_number": 1, "position": "PG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 2, "position": "SG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 3, "position": "SF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 4, "position": "PF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 5, "position": "C", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0}
+        {"jersey_number": 1, "name": "", "position": "PG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 2, "name": "", "position": "SG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 3, "name": "", "position": "SF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 4, "name": "", "position": "PF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 5, "name": "", "position": "C", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0}
     ],
     "team2": [
-        {"jersey_number": 6, "position": "PG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 7, "position": "SG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 8, "position": "SF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 9, "position": "PF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
-        {"jersey_number": 10, "position": "C", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0}
+        {"jersey_number": 6, "name": "", "position": "PG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 7, "name": "", "position": "SG", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 8, "name": "", "position": "SF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 9, "name": "", "position": "PF", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0},
+        {"jersey_number": 10, "name": "", "position": "C", "points_2": 0, "points_3": 0, "assists": 0, "rebounds": 0, "steals": 0}
     ]
 }
 
@@ -153,7 +158,8 @@ def update_live_game_data(game_id, team, player_index, stat_type, value):
 
 @app.route('/')
 def index():
-    return render_template('index.html', buddies=sports_buddies)
+    games = get_all_games()
+    return render_template('index.html', games=games)
 
 @app.route('/jack')
 def jack():
@@ -186,11 +192,192 @@ def update_player_stat():
     player = game_data[team][player_index]
     total_points = (player['points_2'] * 2) + (player['points_3'] * 3)
     
+    # Broadcast the update to all connected clients
+    broadcast_update('stat_update', {
+        'team': team,
+        'player_index': player_index,
+        'stat_type': stat_type,
+        'value': value,
+        'total_points': total_points,
+        'team_totals': calculate_team_totals_from_data(game_data)
+    })
+    
     return jsonify({
         'success': True,
         'total_points': total_points,
         'team_totals': calculate_team_totals_from_data(game_data)
     })
+
+@app.route('/update_team_name', methods=['POST'])
+def update_team_name():
+    data = request.json
+    team = data['team']  # 'team1' or 'team2'
+    new_name = data['name']
+    game_id = data.get('game_id')
+    
+    # Update in Supabase if available
+    if supabase is not None and game_id:
+        try:
+            # Update the team name in the database
+            update_data = {f'{team}_name': new_name}
+            supabase.table('live_games').update(update_data).eq('id', game_id).execute()
+            
+            # Broadcast the update to all connected clients
+            broadcast_update('team_name_update', {
+                'team': team,
+                'name': new_name
+            })
+            
+            return jsonify({'success': True, 'message': 'Team name updated successfully'})
+        except Exception as e:
+            print(f"Error updating team name: {e}")
+            return jsonify({'success': False, 'error': 'Failed to update team name in database'})
+    
+    return jsonify({'success': False, 'error': 'No database connection or game ID'})
+
+@app.route('/update_player_name', methods=['POST'])
+def update_player_name():
+    data = request.json
+    team = data['team']  # 'team1' or 'team2'
+    player_index = data['player_index']
+    new_name = data['name']
+    game_id = data.get('game_id')
+    
+    # Update in Supabase if available
+    if supabase is not None and game_id:
+        try:
+            # Get current game data
+            response = supabase.table('live_games').select('*').eq('id', game_id).execute()
+            
+            if response.data:
+                game_data = response.data[0]
+                team_data = game_data[f'{team}_data']
+                
+                # Update the player name
+                if player_index < len(team_data):
+                    team_data[player_index]['name'] = new_name
+                    
+                    # Update the database
+                    update_data = {f'{team}_data': team_data}
+                    supabase.table('live_games').update(update_data).eq('id', game_id).execute()
+                    
+                    # Broadcast the update to all connected clients
+                    broadcast_update('player_name_update', {
+                        'team': team,
+                        'player_index': player_index,
+                        'name': new_name
+                    })
+                    
+                    return jsonify({'success': True, 'message': 'Player name updated successfully'})
+                else:
+                    return jsonify({'success': False, 'error': 'Invalid player index'})
+            else:
+                return jsonify({'success': False, 'error': 'Game not found'})
+        except Exception as e:
+            print(f"Error updating player name: {e}")
+            return jsonify({'success': False, 'error': 'Failed to update player name in database'})
+    
+    return jsonify({'success': False, 'error': 'No database connection or game ID'})
+
+def broadcast_update(event_type, data):
+    """Broadcast updates to all connected SSE clients"""
+    message = json.dumps({
+        'type': event_type,
+        'data': data,
+        'timestamp': datetime.now().isoformat()
+    })
+    
+    # Remove disconnected clients
+    global sse_clients
+    active_clients = []
+    
+    for client in sse_clients:
+        try:
+            client.put(f"data: {message}\n\n")
+            active_clients.append(client)
+        except:
+            # Client disconnected, remove from list
+            pass
+    
+    sse_clients = active_clients
+
+@app.route('/events')
+def events():
+    """SSE endpoint for live updates"""
+    def event_stream():
+        import queue
+        client_queue = queue.Queue()
+        sse_clients.append(client_queue)
+        
+        try:
+            while True:
+                try:
+                    # Wait for updates with timeout
+                    message = client_queue.get(timeout=30)
+                    yield message
+                except queue.Empty:
+                    # Send heartbeat to keep connection alive
+                    yield "data: {\"type\": \"heartbeat\"}\n\n"
+        except GeneratorExit:
+            # Client disconnected
+            if client_queue in sse_clients:
+                sse_clients.remove(client_queue)
+    
+    return Response(event_stream(), mimetype='text/event-stream',
+                   headers={'Cache-Control': 'no-cache',
+                           'Connection': 'keep-alive',
+                           'Access-Control-Allow-Origin': '*'})
+
+def get_all_games():
+    """Get all games from the database"""
+    if supabase is None:
+        return []
+    
+    try:
+        # Get all live games
+        live_games_response = supabase.table('live_games').select('*').order('created_at', desc=True).execute()
+        
+        # Get all completed basketball games
+        basketball_games_response = supabase.table('basketball_games').select('*').order('created_at', desc=True).execute()
+        
+        games = []
+        
+        # Add live games
+        for game in live_games_response.data:
+            # Calculate total scores
+            team1_score = sum((player.get('points_2', 0) * 2) + (player.get('points_3', 0) * 3) for player in game.get('team1_data', []))
+            team2_score = sum((player.get('points_2', 0) * 2) + (player.get('points_3', 0) * 3) for player in game.get('team2_data', []))
+            
+            games.append({
+                'id': game['id'],
+                'type': 'live',
+                'date': game['created_at'][:10],  # Extract date part
+                'team1_name': game.get('team1_name', 'TEAM 1'),
+                'team2_name': game.get('team2_name', 'TEAM 2'),
+                'team1_score': team1_score,
+                'team2_score': team2_score,
+                'status': game.get('status', 'active')
+            })
+        
+        # Add completed basketball games
+        for game in basketball_games_response.data:
+            games.append({
+                'id': game['id'],
+                'type': 'completed',
+                'date': game['date'],
+                'opponent': game['opponent'],
+                'team_score': game['team_score'],
+                'opponent_score': game['opponent_score'],
+                'result': game['result'],
+                'points': game['points'],
+                'rebounds': game['rebounds'],
+                'assists': game['assists']
+            })
+        
+        return games
+    except Exception as e:
+        print(f"Error fetching games: {e}")
+        return []
 
 def calculate_team_totals():
     """Calculate team totals from current live game data"""

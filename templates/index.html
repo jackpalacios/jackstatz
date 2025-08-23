@@ -3,123 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sports Buddy Finder</title>
+    <title>Basketball Stats Tracker - Games</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Audiowide&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700&family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .games-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .nav-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .nav-btn.live {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .games-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #333;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+        }
+        
+        .games-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .games-table th,
+        .games-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .games-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        
+        .games-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .game-type-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-live {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .badge-completed {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .score {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .winning-score {
+            color: #27ae60;
+        }
+        
+        .losing-score {
+            color: #e74c3c;
+        }
+        
+        .no-games {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.2rem;
+        }
+        
+        .game-link {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .game-link:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🏀 Sports Buddy Finder</h1>
-            <p>Find kids to play sports with nearby!</p>
-        </header>
-
-        <main>
-            <!-- Search Section -->
-            <section class="search-section">
-                <h2>Find Sports Buddies</h2>
-                <form hx-get="/search" hx-target="#buddy-results" hx-trigger="change">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="sport">Sport:</label>
-                            <select name="sport" id="sport">
-                                <option value="">Any Sport</option>
-                                <option value="basketball">Basketball</option>
-                                <option value="soccer">Soccer</option>
-                                <option value="tennis">Tennis</option>
-                                <option value="baseball">Baseball</option>
-                                <option value="football">Football</option>
-                                <option value="volleyball">Volleyball</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="location">Location:</label>
-                            <input type="text" name="location" id="location" placeholder="e.g., Central Park">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="age_range">Age Range:</label>
-                            <select name="age_range" id="age_range">
-                                <option value="">Any Age</option>
-                                <option value="8-10">8-10 years</option>
-                                <option value="11-13">11-13 years</option>
-                                <option value="14-16">14-16 years</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Results Section -->
-            <section class="results-section">
-                <div id="buddy-results">
-                    {% include 'buddy_list.html' %}
+    <div class="games-container">
+        <div class="page-header">
+            <h1 class="page-title">🏀 BASKETBALL STATS TRACKER</h1>
+            <p>Track live games and view game history</p>
+        </div>
+        
+        <div class="nav-buttons">
+            <a href="/live-game" class="nav-btn live">🔴 Live Game</a>
+            <a href="/jack" class="nav-btn">📊 Jack's Stats</a>
+        </div>
+        
+        <div class="games-section">
+            <h2 class="section-title">All Games</h2>
+            
+            {% if games %}
+                <table class="games-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Teams/Opponent</th>
+                            <th>Score</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for game in games %}
+                            <tr>
+                                <td>{{ game.date }}</td>
+                                <td>
+                                    <span class="game-type-badge {% if game.type == 'live' %}badge-live{% else %}badge-completed{% endif %}">
+                                        {{ game.type }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if game.type == 'live' %}
+                                        {{ game.team1_name }} vs {{ game.team2_name }}
+                                    {% else %}
+                                        vs {{ game.opponent }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if game.type == 'live' %}
+                                        <span class="score {% if game.team1_score > game.team2_score %}winning-score{% elif game.team1_score < game.team2_score %}losing-score{% endif %}">
+                                            {{ game.team1_score }}
+                                        </span>
+                                        -
+                                        <span class="score {% if game.team2_score > game.team1_score %}winning-score{% elif game.team2_score < game.team1_score %}losing-score{% endif %}">
+                                            {{ game.team2_score }}
+                                        </span>
+                                    {% else %}
+                                        <span class="score {% if game.result == 'win' %}winning-score{% else %}losing-score{% endif %}">
+                                            {{ game.team_score }} - {{ game.opponent_score }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if game.type == 'live' %}
+                                        <span style="color: #e74c3c; font-weight: 600;">{{ game.status.title() }}</span>
+                                    {% else %}
+                                        <span style="color: #27ae60; font-weight: 600;">{{ game.result.title() }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if game.type == 'live' %}
+                                        <a href="/live-game" class="game-link">View Live</a>
+                                    {% else %}
+                                        <a href="/jack" class="game-link">View Stats</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-games">
+                    <p>No games found. <a href="/live-game" class="game-link">Start a new live game</a> to get started!</p>
                 </div>
-            </section>
-
-            <!-- Add New Buddy Section -->
-            <section class="add-buddy-section">
-                <h2>Add Yourself as a Sports Buddy</h2>
-                <form hx-post="/add_buddy" hx-target="#buddy-results">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="name">Your Name:</label>
-                            <input type="text" name="name" id="name" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="age">Age:</label>
-                            <input type="number" name="age" id="age" min="8" max="18" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="sport_add">Sport:</label>
-                            <select name="sport" id="sport_add" required>
-                                <option value="">Choose a sport</option>
-                                <option value="basketball">Basketball</option>
-                                <option value="soccer">Soccer</option>
-                                <option value="tennis">Tennis</option>
-                                <option value="baseball">Baseball</option>
-                                <option value="football">Football</option>
-                                <option value="volleyball">Volleyball</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="location_add">Location:</label>
-                            <input type="text" name="location" id="location_add" placeholder="e.g., Central Park" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="availability">Availability:</label>
-                            <select name="availability" id="availability" required>
-                                <option value="">Choose availability</option>
-                                <option value="Weekends">Weekends</option>
-                                <option value="After school">After school</option>
-                                <option value="Weekdays">Weekdays</option>
-                                <option value="Evenings">Evenings</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="skill_level">Skill Level:</label>
-                            <select name="skill_level" id="skill_level" required>
-                                <option value="">Choose skill level</option>
-                                <option value="beginner">Beginner</option>
-                                <option value="intermediate">Intermediate</option>
-                                <option value="advanced">Advanced</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn-primary">Add Me as a Sports Buddy!</button>
-                </form>
-            </section>
-        </main>
+            {% endif %}
+        </div>
     </div>
 </body>
 </html>

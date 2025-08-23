@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Game Tracker</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Audiowide&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700&family=Chakra+Petch:wght@300;400;500;600;700&family=Anton&display=swap" rel="stylesheet">
@@ -182,6 +183,70 @@
                 linear-gradient(135deg, #fff5f2 0%, #ffe8e0 50%, #ffd4c7 100%);
         }
         
+        .player-name-input {
+            width: 120px;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-weight: 500;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            font-size: 0.9rem;
+            color: #2d3748;
+            font-family: 'Rajdhani', sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        .player-name-input:focus {
+            border-color: #4CAF50;
+            outline: none;
+            background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            transform: scale(1.02);
+        }
+        
+        .player-name-input::placeholder {
+            color: #a0aec0;
+            font-style: italic;
+        }
+        
+        .live-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .live-status.connected {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .live-status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .live-status.update {
+            background: #f39c12;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .update-flash {
+            animation: flashUpdate 0.5s ease-in-out;
+        }
+        
+        @keyframes flashUpdate {
+            0% { background-color: rgba(46, 204, 113, 0.3); }
+            50% { background-color: rgba(46, 204, 113, 0.6); }
+            100% { background-color: transparent; }
+        }
+        
         .position-cell {
             text-align: center;
         }
@@ -328,7 +393,10 @@
         }
     </style>
 </head>
-<body>
+<body hx-ext="sse" sse-connect="/events">
+    <!-- Live connection status indicator -->
+    <div id="live-status" class="live-status disconnected">🔴 Connecting...</div>
+    
     <div class="live-game-container">
         <!-- Hidden element to store game ID -->
         <div id="game-id" data-game-id="{{ game_data.game_id | default('') }}"></div>
@@ -340,13 +408,13 @@
             <div class="score-display">
                 <div class="team-score">
                     <div>
-                        <input type="text" id="team1-name" value="TEAM 1" class="team-name-input" onchange="updateTeamName('team1', this.value)">
+                        <input type="text" id="team1-name" value="{{ game_data.team1_name | default('TEAM 1') }}" class="team-name-input" onchange="updateTeamName('team1', this.value)">
                     </div>
                     <div id="team1-score">0</div>
                 </div>
                 <div class="team-score">
                     <div>
-                        <input type="text" id="team2-name" value="TEAM 2" class="team-name-input" onchange="updateTeamName('team2', this.value)">
+                        <input type="text" id="team2-name" value="{{ game_data.team2_name | default('TEAM 2') }}" class="team-name-input" onchange="updateTeamName('team2', this.value)">
                     </div>
                     <div id="team2-score">0</div>
                 </div>
@@ -358,7 +426,7 @@
             <div class="team-section">
                 <div class="team-header">
                     <h2 class="team-name">
-                        <input type="text" id="team1-header-name" value="TEAM 1" class="team-header-input" onchange="updateTeamName('team1', this.value)">
+                        <input type="text" id="team1-header-name" value="{{ game_data.team1_name | default('TEAM 1') }}" class="team-header-input" onchange="updateTeamName('team1', this.value)">
                     </h2>
                 </div>
                 
@@ -366,6 +434,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th>NAME</th>
                             <th>POS</th>
                             <th>2PT</th>
                             <th>3PT</th>
@@ -380,10 +449,17 @@
                         <tr>
                             <td class="player-name">
                                 <input type="number" class="jersey-number-input" 
-                                       value="{{ loop.index0 + 1 }}" 
+                                       value="{{ player.jersey_number | default(loop.index0 + 1) }}" 
                                        data-team="team1" data-player="{{ loop.index0 }}"
                                        min="0" max="99"
                                        onchange="updateJerseyNumber(this)">
+                            </td>
+                            <td class="player-name-cell">
+                                <input type="text" class="player-name-input" 
+                                       value="{{ player.name | default('') }}" 
+                                       data-team="team1" data-player="{{ loop.index0 }}"
+                                       placeholder="Player Name"
+                                       onchange="updatePlayerName(this)">
                             </td>
                             <td class="position-cell">
                                 <select class="position-select" 
@@ -459,7 +535,7 @@
             <div class="team-section">
                 <div class="team-header">
                     <h2 class="team-name">
-                        <input type="text" id="team2-header-name" value="TEAM 2" class="team-header-input" onchange="updateTeamName('team2', this.value)">
+                        <input type="text" id="team2-header-name" value="{{ game_data.team2_name | default('TEAM 2') }}" class="team-header-input" onchange="updateTeamName('team2', this.value)">
                     </h2>
                 </div>
                 
@@ -467,6 +543,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th>NAME</th>
                             <th>POS</th>
                             <th>2PT</th>
                             <th>3PT</th>
@@ -481,10 +558,17 @@
                         <tr>
                             <td class="player-name">
                                 <input type="number" class="jersey-number-input" 
-                                       value="{{ loop.index0 + 6 }}" 
+                                       value="{{ player.jersey_number | default(loop.index0 + 6) }}" 
                                        data-team="team2" data-player="{{ loop.index0 }}"
                                        min="0" max="99"
                                        onchange="updateJerseyNumber(this)">
+                            </td>
+                            <td class="player-name-cell">
+                                <input type="text" class="player-name-input" 
+                                       value="{{ player.name | default('') }}" 
+                                       data-team="team2" data-player="{{ loop.index0 }}"
+                                       placeholder="Player Name"
+                                       onchange="updatePlayerName(this)">
                             </td>
                             <td class="position-cell">
                                 <select class="position-select" 
@@ -569,13 +653,40 @@
 
     <script>
         function updateTeamName(team, newName) {
-            // Update all instances of the team name
+            // Update all instances of the team name in the UI
             if (team === 'team1') {
                 document.getElementById('team1-name').value = newName;
                 document.getElementById('team1-header-name').value = newName;
             } else {
                 document.getElementById('team2-name').value = newName;
                 document.getElementById('team2-header-name').value = newName;
+            }
+            
+            // Save to database
+            const gameId = document.getElementById('game-id').dataset.gameId;
+            if (gameId) {
+                fetch('/update_team_name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        team: team,
+                        name: newName,
+                        game_id: gameId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Team name updated successfully:', newName);
+                    } else {
+                        console.error('Failed to update team name:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating team name:', error);
+                });
             }
         }
         
@@ -597,11 +708,175 @@
             console.log(`Updated ${team} player ${playerIndex} position to: ${newPosition}`);
         }
         
+        function updatePlayerName(input) {
+            const team = input.dataset.team;
+            const playerIndex = parseInt(input.dataset.player);
+            const newName = input.value;
+            
+            // Save to database
+            const gameId = document.getElementById('game-id').dataset.gameId;
+            if (gameId) {
+                fetch('/update_player_name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        team: team,
+                        player_index: playerIndex,
+                        name: newName,
+                        game_id: gameId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Player name updated successfully:', newName);
+                    } else {
+                        console.error('Failed to update player name:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating player name:', error);
+                });
+            }
+        }
+        
         // Track click timing for double-click detection
         let clickTimers = {};
         
         // Get game ID from the page data
         const gameId = document.getElementById('game-id').dataset.gameId || null;
+        
+        // Handle SSE connection events
+        document.body.addEventListener('htmx:sseOpen', function(event) {
+            console.log('SSE connection opened');
+            updateConnectionStatus('connected');
+        });
+        
+        document.body.addEventListener('htmx:sseError', function(event) {
+            console.log('SSE connection error');
+            updateConnectionStatus('disconnected');
+        });
+        
+        document.body.addEventListener('htmx:sseClose', function(event) {
+            console.log('SSE connection closed');
+            updateConnectionStatus('disconnected');
+        });
+        
+        // Handle SSE events for live updates
+        document.body.addEventListener('htmx:sseMessage', function(event) {
+            try {
+                const data = JSON.parse(event.detail.data);
+                handleLiveUpdate(data);
+            } catch (error) {
+                console.error('Error parsing SSE message:', error);
+            }
+        });
+        
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('live-status');
+            if (statusElement) {
+                statusElement.className = `live-status ${status}`;
+                switch (status) {
+                    case 'connected':
+                        statusElement.textContent = '🟢 Live Connected';
+                        break;
+                    case 'disconnected':
+                        statusElement.textContent = '🔴 Disconnected';
+                        break;
+                    case 'update':
+                        statusElement.textContent = '🟡 Update Received';
+                        setTimeout(() => updateConnectionStatus('connected'), 1000);
+                        break;
+                }
+            }
+        }
+        
+        function handleLiveUpdate(data) {
+            // Show update indicator (except for heartbeat)
+            if (data.type !== 'heartbeat') {
+                updateConnectionStatus('update');
+            }
+            
+            switch (data.type) {
+                case 'stat_update':
+                    updateStatDisplay(data.data);
+                    break;
+                case 'team_name_update':
+                    updateTeamNameDisplay(data.data);
+                    break;
+                case 'player_name_update':
+                    updatePlayerNameDisplay(data.data);
+                    break;
+                case 'heartbeat':
+                    // Keep connection alive
+                    break;
+                default:
+                    console.log('Unknown update type:', data.type);
+            }
+        }
+        
+        function updateStatDisplay(data) {
+            // Update the stat button display
+            const statButton = document.querySelector(`button[data-team="${data.team}"][data-player="${data.player_index}"][data-stat="${data.stat_type}"]`);
+            if (statButton) {
+                const statCount = statButton.querySelector('.stat-count');
+                if (statCount) {
+                    statCount.textContent = data.value;
+                    // Add flash effect
+                    statButton.classList.add('update-flash');
+                    setTimeout(() => statButton.classList.remove('update-flash'), 500);
+                }
+            }
+            
+            // Update total points for the player
+            const totalPointsElement = document.getElementById(`${data.team}-player-${data.player_index}-points`);
+            if (totalPointsElement) {
+                totalPointsElement.textContent = data.total_points;
+                totalPointsElement.classList.add('update-flash');
+                setTimeout(() => totalPointsElement.classList.remove('update-flash'), 500);
+            }
+            
+            // Update team scores
+            if (data.team_totals) {
+                const team1Score = document.getElementById('team1-score');
+                const team2Score = document.getElementById('team2-score');
+                if (team1Score) {
+                    team1Score.textContent = data.team_totals.team1;
+                    team1Score.classList.add('update-flash');
+                    setTimeout(() => team1Score.classList.remove('update-flash'), 500);
+                }
+                if (team2Score) {
+                    team2Score.textContent = data.team_totals.team2;
+                    team2Score.classList.add('update-flash');
+                    setTimeout(() => team2Score.classList.remove('update-flash'), 500);
+                }
+            }
+        }
+        
+        function updateTeamNameDisplay(data) {
+            // Update all team name inputs
+            if (data.team === 'team1') {
+                const team1Name = document.getElementById('team1-name');
+                const team1HeaderName = document.getElementById('team1-header-name');
+                if (team1Name && team1Name.value !== data.name) team1Name.value = data.name;
+                if (team1HeaderName && team1HeaderName.value !== data.name) team1HeaderName.value = data.name;
+            } else {
+                const team2Name = document.getElementById('team2-name');
+                const team2HeaderName = document.getElementById('team2-header-name');
+                if (team2Name && team2Name.value !== data.name) team2Name.value = data.name;
+                if (team2HeaderName && team2HeaderName.value !== data.name) team2HeaderName.value = data.name;
+            }
+        }
+        
+        function updatePlayerNameDisplay(data) {
+            // Update player name input
+            const playerNameInput = document.querySelector(`input[data-team="${data.team}"][data-player="${data.player_index}"].player-name-input`);
+            if (playerNameInput && playerNameInput.value !== data.name) {
+                playerNameInput.value = data.name;
+            }
+        }
         
         function handleStatClick(button) {
             const buttonId = `${button.dataset.team}-${button.dataset.player}-${button.dataset.stat}`;
