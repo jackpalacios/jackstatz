@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Game Tracker</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Audiowide&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700&family=Chakra+Petch:wght@300;400;500;600;700&family=Anton&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .live-game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .game-header {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .game-title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+        }
+        
+        .score-display {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 20px;
+        }
+        
+        .team-score {
+            background: rgba(255,255,255,0.2);
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .teams-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .team-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .team-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #ff6b35;
+        }
+        
+        .team-name {
+            font-size: 1.8rem;
+            color: #ff6b35;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .stats-table th {
+            background: #f7fafc;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+        
+        .stats-table td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .player-name {
+            text-align: left;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .team-name-input, .team-header-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            width: 100%;
+            outline: none;
+        }
+        
+        .team-header-input {
+            color: #ff6b35;
+            font-size: 1.8rem;
+        }
+        
+        .jersey-number-input {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px solid #e2e8f0;
+            color: #2d3748;
+            font-family: 'Anton', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 400;
+            width: 70px;
+            height: 50px;
+            text-align: center;
+            outline: none;
+            padding: 8px 5px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .jersey-number-input::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 50% 20%, rgba(255,255,255,0.8) 0%, transparent 50%),
+                linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #e9ecef 100%);
+            border-radius: 6px;
+            z-index: -1;
+        }
+        
+        .jersey-number-input::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 2px;
+            background: #ff6b35;
+            border-radius: 1px;
+        }
+        
+        .team-name-input:focus, .team-header-input:focus, .jersey-number-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.3);
+        }
+        
+        .jersey-number-input:focus {
+            background: linear-gradient(135deg, #fff5f2 0%, #ffe8e0 100%);
+            border-color: #ff6b35;
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .jersey-number-input:focus::before {
+            background: 
+                radial-gradient(circle at 50% 20%, rgba(255,255,255,0.9) 0%, transparent 50%),
+                linear-gradient(135deg, #fff5f2 0%, #ffe8e0 50%, #ffd4c7 100%);
+        }
+        
+        .position-cell {
+            text-align: center;
+        }
+        
+        .position-select {
+            background: transparent;
+            border: 2px solid #e2e8f0;
+            color: #2d3748;
+            font-family: 'Anton', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 400;
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 60px;
+        }
+        
+        .position-select:focus {
+            border-color: #ff6b35;
+            box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+            background: rgba(255, 107, 53, 0.05);
+        }
+        
+        .position-select option {
+            background: white;
+            color: #2d3748;
+            font-family: 'Anton', sans-serif;
+        }
+        
+        .stat-button-container {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .stat-button {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-button:hover {
+            background: linear-gradient(135deg, #fff5f2 0%, #ffe8e0 100%);
+            border-color: #ff6b35;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(255, 107, 53, 0.2);
+        }
+        
+        .stat-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+        }
+        
+        .stat-count {
+            font-family: 'Anton', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #2d3748;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+            color: #718096;
+            font-weight: 600;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+        
+        .total-points {
+            font-weight: 700;
+            color: #000000;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn-control {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin: 0 10px;
+        }
+        
+        .btn-control:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 8px 20px rgba(74, 85, 104, 0.3);
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .back-link a {
+            color: #ff6b35;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 1200px) {
+            .teams-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-table {
+                font-size: 0.8rem;
+            }
+            
+            .stat-input {
+                width: 40px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="live-game-container">
+        <!-- Hidden element to store game ID -->
+        <div id="game-id" data-game-id="{{ game_data.game_id | default('') }}"></div>
+        
+        <div class="game-header">
+            <h1 class="game-title">🏀 LIVE GAME TRACKER</h1>
+            <p>Real-time basketball stats for all players</p>
+            
+            <div class="score-display">
+                <div class="team-score">
+                    <div>
+                        <input type="text" id="team1-name" value="TEAM 1" class="team-name-input" onchange="updateTeamName('team1', this.value)">
+                    </div>
+                    <div id="team1-score">0</div>
+                </div>
+                <div class="team-score">
+                    <div>
+                        <input type="text" id="team2-name" value="TEAM 2" class="team-name-input" onchange="updateTeamName('team2', this.value)">
+                    </div>
+                    <div id="team2-score">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="teams-container">
+            <!-- Team 1 -->
+            <div class="team-section">
+                <div class="team-header">
+                    <h2 class="team-name">
+                        <input type="text" id="team1-header-name" value="TEAM 1" class="team-header-input" onchange="updateTeamName('team1', this.value)">
+                    </h2>
+                </div>
+                
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>POS</th>
+                            <th>2PT</th>
+                            <th>3PT</th>
+                            <th>AST</th>
+                            <th>REB</th>
+                            <th>STL</th>
+                            <th>PTS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in game_data.team1 %}
+                        <tr>
+                            <td class="player-name">
+                                <input type="number" class="jersey-number-input" 
+                                       value="{{ loop.index0 + 1 }}" 
+                                       data-team="team1" data-player="{{ loop.index0 }}"
+                                       min="0" max="99"
+                                       onchange="updateJerseyNumber(this)">
+                            </td>
+                            <td class="position-cell">
+                                <select class="position-select" 
+                                        data-team="team1" data-player="{{ loop.index0 }}"
+                                        onchange="updatePosition(this)">
+                                    <option value="PG" {% if loop.index0 == 0 %}selected{% endif %}>PG</option>
+                                    <option value="SG" {% if loop.index0 == 1 %}selected{% endif %}>SG</option>
+                                    <option value="SF" {% if loop.index0 == 2 %}selected{% endif %}>SF</option>
+                                    <option value="PF" {% if loop.index0 == 3 %}selected{% endif %}>PF</option>
+                                    <option value="C" {% if loop.index0 == 4 %}selected{% endif %}>C</option>
+                                </select>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team1" data-player="{{ loop.index0 }}" data-stat="points_2"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.points_2 }}</span>
+                                        <span class="stat-label">2PT</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team1" data-player="{{ loop.index0 }}" data-stat="points_3"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.points_3 }}</span>
+                                        <span class="stat-label">3PT</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team1" data-player="{{ loop.index0 }}" data-stat="assists"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.assists }}</span>
+                                        <span class="stat-label">AST</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team1" data-player="{{ loop.index0 }}" data-stat="rebounds"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.rebounds }}</span>
+                                        <span class="stat-label">REB</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team1" data-player="{{ loop.index0 }}" data-stat="steals"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.steals }}</span>
+                                        <span class="stat-label">STL</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="total-points" id="team1-player-{{ loop.index0 }}-points">
+                                {{ (player.points_2 * 2) + (player.points_3 * 3) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Team 2 -->
+            <div class="team-section">
+                <div class="team-header">
+                    <h2 class="team-name">
+                        <input type="text" id="team2-header-name" value="TEAM 2" class="team-header-input" onchange="updateTeamName('team2', this.value)">
+                    </h2>
+                </div>
+                
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>POS</th>
+                            <th>2PT</th>
+                            <th>3PT</th>
+                            <th>AST</th>
+                            <th>REB</th>
+                            <th>STL</th>
+                            <th>PTS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in game_data.team2 %}
+                        <tr>
+                            <td class="player-name">
+                                <input type="number" class="jersey-number-input" 
+                                       value="{{ loop.index0 + 6 }}" 
+                                       data-team="team2" data-player="{{ loop.index0 }}"
+                                       min="0" max="99"
+                                       onchange="updateJerseyNumber(this)">
+                            </td>
+                            <td class="position-cell">
+                                <select class="position-select" 
+                                        data-team="team2" data-player="{{ loop.index0 }}"
+                                        onchange="updatePosition(this)">
+                                    <option value="PG" {% if loop.index0 == 0 %}selected{% endif %}>PG</option>
+                                    <option value="SG" {% if loop.index0 == 1 %}selected{% endif %}>SG</option>
+                                    <option value="SF" {% if loop.index0 == 2 %}selected{% endif %}>SF</option>
+                                    <option value="PF" {% if loop.index0 == 3 %}selected{% endif %}>PF</option>
+                                    <option value="C" {% if loop.index0 == 4 %}selected{% endif %}>C</option>
+                                </select>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team2" data-player="{{ loop.index0 }}" data-stat="points_2"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.points_2 }}</span>
+                                        <span class="stat-label">2PT</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team2" data-player="{{ loop.index0 }}" data-stat="points_3"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.points_3 }}</span>
+                                        <span class="stat-label">3PT</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team2" data-player="{{ loop.index0 }}" data-stat="assists"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.assists }}</span>
+                                        <span class="stat-label">AST</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team2" data-player="{{ loop.index0 }}" data-stat="rebounds"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.rebounds }}</span>
+                                        <span class="stat-label">REB</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="stat-button-container">
+                                    <button class="stat-button" 
+                                            data-team="team2" data-player="{{ loop.index0 }}" data-stat="steals"
+                                            onclick="handleStatClick(this)">
+                                        <span class="stat-count">{{ player.steals }}</span>
+                                        <span class="stat-label">STL</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="total-points" id="team2-player-{{ loop.index0 }}-points">
+                                {{ (player.points_2 * 2) + (player.points_3 * 3) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn-control" onclick="resetGame()">Reset Game</button>
+            <button class="btn-control btn-secondary" onclick="saveGame()">Save Game</button>
+        </div>
+        
+        <div class="back-link">
+            <a href="/jack">← Back to Jack's Stats</a>
+        </div>
+    </div>
+
+    <script>
+        function updateTeamName(team, newName) {
+            // Update all instances of the team name
+            if (team === 'team1') {
+                document.getElementById('team1-name').value = newName;
+                document.getElementById('team1-header-name').value = newName;
+            } else {
+                document.getElementById('team2-name').value = newName;
+                document.getElementById('team2-header-name').value = newName;
+            }
+        }
+        
+        function updateJerseyNumber(input) {
+            const team = input.dataset.team;
+            const playerIndex = parseInt(input.dataset.player);
+            const newNumber = input.value;
+            
+            // Update the jersey number in the backend (you can add an API call here if needed)
+            console.log(`Updated ${team} player ${playerIndex} jersey number to: ${newNumber}`);
+        }
+        
+        function updatePosition(select) {
+            const team = select.dataset.team;
+            const playerIndex = parseInt(select.dataset.player);
+            const newPosition = select.value;
+            
+            // Update the position in the backend (you can add an API call here if needed)
+            console.log(`Updated ${team} player ${playerIndex} position to: ${newPosition}`);
+        }
+        
+        // Track click timing for double-click detection
+        let clickTimers = {};
+        
+        // Get game ID from the page data
+        const gameId = document.getElementById('game-id').dataset.gameId || null;
+        
+        function handleStatClick(button) {
+            const buttonId = `${button.dataset.team}-${button.dataset.player}-${button.dataset.stat}`;
+            
+            if (clickTimers[buttonId]) {
+                // This is a double click - decrement
+                clearTimeout(clickTimers[buttonId]);
+                delete clickTimers[buttonId];
+                decrementStat(button);
+            } else {
+                // This might be a single click - wait to see if another click comes
+                clickTimers[buttonId] = setTimeout(() => {
+                    // Single click confirmed - increment
+                    delete clickTimers[buttonId];
+                    incrementStat(button);
+                }, 300); // Wait 300ms to see if double click occurs
+            }
+        }
+        
+        function incrementStat(button) {
+            const team = button.dataset.team;
+            const playerIndex = parseInt(button.dataset.player);
+            const statType = button.dataset.stat;
+            
+            // Get current count and increment
+            const countSpan = button.querySelector('.stat-count');
+            const currentValue = parseInt(countSpan.textContent) || 0;
+            const newValue = currentValue + 1;
+            
+            // Update the display immediately for instant feedback
+            countSpan.textContent = newValue;
+            
+            // Add a quick visual feedback
+            button.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                button.style.transform = '';
+            }, 150);
+            
+            fetch('/update_player_stat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    team: team,
+                    player_index: playerIndex,
+                    stat_type: statType,
+                    value: newValue,
+                    game_id: gameId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update player's total points
+                    document.getElementById(`${team}-player-${playerIndex}-points`).textContent = data.total_points;
+                    
+                    // Update team scores
+                    document.getElementById('team1-score').textContent = data.team_totals.team1;
+                    document.getElementById('team2-score').textContent = data.team_totals.team2;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Revert the count if there was an error
+                countSpan.textContent = currentValue;
+            });
+        }
+        
+        function decrementStat(button) {
+            const team = button.dataset.team;
+            const playerIndex = parseInt(button.dataset.player);
+            const statType = button.dataset.stat;
+            
+            // Get current count and decrement (but don't go below 0)
+            const countSpan = button.querySelector('.stat-count');
+            const currentValue = parseInt(countSpan.textContent) || 0;
+            const newValue = Math.max(0, currentValue - 1);
+            
+            // Update the display immediately for instant feedback
+            countSpan.textContent = newValue;
+            
+            // Add a quick visual feedback (different from increment)
+            button.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                button.style.transform = '';
+            }, 150);
+            
+            fetch('/update_player_stat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    team: team,
+                    player_index: playerIndex,
+                    stat_type: statType,
+                    value: newValue,
+                    game_id: gameId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update player's total points
+                    document.getElementById(`${team}-player-${playerIndex}-points`).textContent = data.total_points;
+                    
+                    // Update team scores
+                    document.getElementById('team1-score').textContent = data.team_totals.team1;
+                    document.getElementById('team2-score').textContent = data.team_totals.team2;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Revert the count if there was an error
+                countSpan.textContent = currentValue;
+            });
+        }
+        
+        function resetGame() {
+            if (confirm('Are you sure you want to reset the game? All stats will be lost.')) {
+                location.reload();
+            }
+        }
+        
+        function saveGame() {
+            alert('Game saved! (This would save to your stats in a real app)');
+        }
+    </script>
+</body>
+</html>

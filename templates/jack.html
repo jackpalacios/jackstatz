@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jack's Basketball Stats</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Audiowide&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700&family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Custom styles for Jack's Basketball Stats */
+        .jack-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .jack-header {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .jack-title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .jack-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stats-section h2 {
+            color: #ff6b35;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #ff6b35;
+            padding-bottom: 10px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+        
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff6b35;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 15px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+        }
+        
+        .stats-summary {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .stats-row:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .stat-value {
+            font-weight: 700;
+            color: #ff6b35;
+            font-size: 1.1rem;
+        }
+        
+        .games-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .game-card {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ff6b35;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .game-date {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .game-result {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .result-win {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .result-loss {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .game-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 5px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .stat-number {
+            font-weight: 700;
+            color: #ff6b35;
+            font-size: 1.1rem;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .back-link a {
+            color: #ff6b35;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .game-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jack-container">
+        <div class="jack-header">
+            <h1 class="jack-title">🏀 Jack's Basketball Stats</h1>
+            <p class="jack-subtitle">Track your basketball game performance</p>
+        </div>
+        
+        <div class="stats-grid">
+            <!-- Add New Game Section -->
+            <div class="stats-section">
+                <h2>📊 Add New Game</h2>
+                <form hx-post="/add_game" hx-target="#stats-display">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="date">Date:</label>
+                            <input type="date" name="date" id="date" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="opponent">Opponent:</label>
+                            <input type="text" name="opponent" id="opponent" placeholder="Team name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="result">Result:</label>
+                            <select name="result" id="result" required>
+                                <option value="">Select result</option>
+                                <option value="win">Win</option>
+                                <option value="loss">Loss</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="points">Points:</label>
+                            <input type="number" name="points" id="points" min="0" max="100" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rebounds">Rebounds:</label>
+                            <input type="number" name="rebounds" id="rebounds" min="0" max="50" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="assists">Assists:</label>
+                            <input type="number" name="assists" id="assists" min="0" max="30" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="steals">Steals:</label>
+                            <input type="number" name="steals" id="steals" min="0" max="20" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="blocks">Blocks:</label>
+                            <input type="number" name="blocks" id="blocks" min="0" max="15" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="turnovers">Turnovers:</label>
+                            <input type="number" name="turnovers" id="turnovers" min="0" max="20" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="minutes">Minutes Played:</label>
+                            <input type="number" name="minutes" id="minutes" min="0" max="48" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Add Game Stats</button>
+                </form>
+            </div>
+            
+            <!-- Stats Summary Section -->
+            <div class="stats-section">
+                <h2>📈 Season Summary</h2>
+                <div id="stats-display">
+                    <div class="stats-summary">
+                        <div class="stats-row">
+                            <span class="stat-label">Games Played:</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stat-label">Wins:</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stat-label">Win %:</span>
+                            <span class="stat-value">0%</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stat-label">Avg Points:</span>
+                            <span class="stat-value">0.0</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stat-label">Avg Rebounds:</span>
+                            <span class="stat-value">0.0</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stat-label">Avg Assists:</span>
+                            <span class="stat-value">0.0</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stat-label">Avg Steals:</span>
+                            <span class="stat-value">0.0</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stat-label">Avg Blocks:</span>
+                            <span class="stat-value">0.0</span>
+                        </div>
+                    </div>
+                    
+                    <h3>Recent Games</h3>
+                    <div class="games-list">
+                        <p style="text-align: center; color: #718096; padding: 20px;">
+                            No games recorded yet. Add your first game above!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="back-link">
+            <a href="/live-game" class="btn-primary" style="display: inline-block; margin-right: 20px;">🎮 Live Game Tracker</a>
+            <a href="/">← Back to Sports Buddy Finder</a>
+        </div>
+    </div>
+</body>
+</html>

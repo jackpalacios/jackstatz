@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Buddy Finder</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Audiowide&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700&family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏀 Sports Buddy Finder</h1>
+            <p>Find kids to play sports with nearby!</p>
+        </header>
+
+        <main>
+            <!-- Search Section -->
+            <section class="search-section">
+                <h2>Find Sports Buddies</h2>
+                <form hx-get="/search" hx-target="#buddy-results" hx-trigger="change">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="sport">Sport:</label>
+                            <select name="sport" id="sport">
+                                <option value="">Any Sport</option>
+                                <option value="basketball">Basketball</option>
+                                <option value="soccer">Soccer</option>
+                                <option value="tennis">Tennis</option>
+                                <option value="baseball">Baseball</option>
+                                <option value="football">Football</option>
+                                <option value="volleyball">Volleyball</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="location">Location:</label>
+                            <input type="text" name="location" id="location" placeholder="e.g., Central Park">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="age_range">Age Range:</label>
+                            <select name="age_range" id="age_range">
+                                <option value="">Any Age</option>
+                                <option value="8-10">8-10 years</option>
+                                <option value="11-13">11-13 years</option>
+                                <option value="14-16">14-16 years</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section">
+                <div id="buddy-results">
+                    {% include 'buddy_list.html' %}
+                </div>
+            </section>
+
+            <!-- Add New Buddy Section -->
+            <section class="add-buddy-section">
+                <h2>Add Yourself as a Sports Buddy</h2>
+                <form hx-post="/add_buddy" hx-target="#buddy-results">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="name">Your Name:</label>
+                            <input type="text" name="name" id="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="age">Age:</label>
+                            <input type="number" name="age" id="age" min="8" max="18" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sport_add">Sport:</label>
+                            <select name="sport" id="sport_add" required>
+                                <option value="">Choose a sport</option>
+                                <option value="basketball">Basketball</option>
+                                <option value="soccer">Soccer</option>
+                                <option value="tennis">Tennis</option>
+                                <option value="baseball">Baseball</option>
+                                <option value="football">Football</option>
+                                <option value="volleyball">Volleyball</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="location_add">Location:</label>
+                            <input type="text" name="location" id="location_add" placeholder="e.g., Central Park" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="availability">Availability:</label>
+                            <select name="availability" id="availability" required>
+                                <option value="">Choose availability</option>
+                                <option value="Weekends">Weekends</option>
+                                <option value="After school">After school</option>
+                                <option value="Weekdays">Weekdays</option>
+                                <option value="Evenings">Evenings</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="skill_level">Skill Level:</label>
+                            <select name="skill_level" id="skill_level" required>
+                                <option value="">Choose skill level</option>
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Add Me as a Sports Buddy!</button>
+                </form>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

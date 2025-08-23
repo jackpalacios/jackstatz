@@ -1,0 +1,39 @@
+{% if buddies %}
+    <div class="buddy-grid">
+        {% for buddy in buddies %}
+        <div class="buddy-card">
+            <div class="buddy-header">
+                <h3>{{ buddy.name }}</h3>
+                <span class="age">{{ buddy.age }} years old</span>
+            </div>
+            <div class="buddy-details">
+                <div class="detail-item">
+                    <span class="label">Sport:</span>
+                    <span class="value sport-badge">{{ buddy.sport }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Location:</span>
+                    <span class="value">{{ buddy.location }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Available:</span>
+                    <span class="value">{{ buddy.availability }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Skill Level:</span>
+                    <span class="value skill-badge skill-{{ buddy.skill_level }}">{{ buddy.skill_level }}</span>
+                </div>
+            </div>
+            <div class="buddy-actions">
+                <button class="btn-secondary">Contact</button>
+                <button class="btn-secondary">Message</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="no-results">
+        <p>No sports buddies found matching your criteria.</p>
+        <p>Try adjusting your search or add yourself as a sports buddy!</p>
+    </div>
+{% endif %}

@@ -1,0 +1,82 @@
+<div class="stats-summary">
+    <div class="stats-row">
+        <span class="stat-label">Games Played:</span>
+        <span class="stat-value">{{ stats.games_played }}</span>
+    </div>
+    <div class="stats-row">
+        <span class="stat-label">Wins:</span>
+        <span class="stat-value">{{ stats.wins }}</span>
+    </div>
+    <div class="stats-row">
+        <span class="stat-label">Win %:</span>
+        <span class="stat-value">{{ stats.win_percentage }}%</span>
+    </div>
+    <div class="stats-row">
+        <span class="stat-label">Avg Points:</span>
+        <span class="stat-value">{{ stats.avg_points }}</span>
+    </div>
+    <div class="stats-row">
+        <span class="stat-label">Avg Rebounds:</span>
+        <span class="stat-value">{{ stats.avg_rebounds }}</span>
+    </div>
+    <div class="stats-row">
+        <span class="stat-label">Avg Assists:</span>
+        <span class="stat-value">{{ stats.avg_assists }}</span>
+    </div>
+    <div class="stats-row">
+        <span class="stat-label">Avg Steals:</span>
+        <span class="stat-value">{{ stats.avg_steals }}</span>
+    </div>
+    <div class="stats-row">
+        <span class="stat-label">Avg Blocks:</span>
+        <span class="stat-value">{{ stats.avg_blocks }}</span>
+    </div>
+</div>
+
+<h3>Recent Games</h3>
+<div class="games-list">
+    {% if games %}
+        {% for game in games[-5:]|reverse %}
+        <div class="game-card">
+            <div class="game-header">
+                <span class="game-date">{{ game.date }} vs {{ game.opponent }}</span>
+                <span class="game-result result-{{ game.result }}">{{ game.result.upper() }}</span>
+            </div>
+            <div class="game-stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ game.points }}</div>
+                    <div>PTS</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ game.rebounds }}</div>
+                    <div>REB</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ game.assists }}</div>
+                    <div>AST</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ game.steals }}</div>
+                    <div>STL</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ game.blocks }}</div>
+                    <div>BLK</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ game.turnovers }}</div>
+                    <div>TO</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ game.minutes }}</div>
+                    <div>MIN</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="text-align: center; color: #718096; padding: 20px;">
+            No games recorded yet. Add your first game above!
+        </p>
+    {% endif %}
+</div>
