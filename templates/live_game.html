@@ -794,26 +794,35 @@
         }
         
         function handleLiveUpdate(data) {
+            console.log('📡 Received SSE update:', data);
+            
             // Show update indicator (except for heartbeat)
-            if (data.type !== 'heartbeat') {
+            if (data.type !== 'heartbeat' && data.type !== 'connected') {
                 updateConnectionStatus('update');
             }
             
             switch (data.type) {
+                case 'connected':
+                    console.log('✅ SSE connection established');
+                    updateConnectionStatus('connected');
+                    break;
                 case 'stat_update':
+                    console.log('📊 Stat update received:', data.data);
                     updateStatDisplay(data.data);
                     break;
                 case 'team_name_update':
+                    console.log('🏀 Team name update received:', data.data);
                     updateTeamNameDisplay(data.data);
                     break;
                 case 'player_name_update':
+                    console.log('👤 Player name update received:', data.data);
                     updatePlayerNameDisplay(data.data);
                     break;
                 case 'heartbeat':
-                    // Keep connection alive
+                    // Keep connection alive - don't log to avoid spam
                     break;
                 default:
-                    console.log('Unknown update type:', data.type);
+                    console.log('❓ Unknown update type:', data.type, data);
             }
         }
         

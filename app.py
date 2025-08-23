@@ -293,13 +293,14 @@ def broadcast_update(event_type, data):
     
     for client in sse_clients:
         try:
-            client.put(f"data: {message}\n\n")
+            client.put(f"data: {message}\n\n", block=False)
             active_clients.append(client)
         except:
             # Client disconnected, remove from list
             pass
     
     sse_clients = active_clients
+    print(f"📡 Broadcasted {event_type} to {len(active_clients)} clients")
 
 @app.route('/events')
 def events():
@@ -308,8 +309,12 @@ def events():
         import queue
         client_queue = queue.Queue()
         sse_clients.append(client_queue)
+        print(f"🔌 New SSE client connected. Total clients: {len(sse_clients)}")
         
         try:
+            # Send initial connection message
+            yield "data: {\"type\": \"connected\", \"message\": \"SSE connection established\"}\n\n"
+            
             while True:
                 try:
                     # Wait for updates with timeout
@@ -322,11 +327,13 @@ def events():
             # Client disconnected
             if client_queue in sse_clients:
                 sse_clients.remove(client_queue)
+            print(f"🔌 SSE client disconnected. Remaining clients: {len(sse_clients)}")
     
     return Response(event_stream(), mimetype='text/event-stream',
                    headers={'Cache-Control': 'no-cache',
                            'Connection': 'keep-alive',
-                           'Access-Control-Allow-Origin': '*'})
+                           'Access-Control-Allow-Origin': '*',
+                           'X-Accel-Buffering': 'no'})
 
 def get_all_games():
     """Get all games from the database"""
