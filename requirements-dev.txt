@@ -1,0 +1,9 @@
+# Development requirements
+# Includes all dependencies plus development tools
+
+-r requirements.txt
+
+# Development tools (optional)
+# pytest==7.4.3
+# black==23.11.0
+# flake8==6.1.0

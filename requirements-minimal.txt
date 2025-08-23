@@ -1,0 +1,6 @@
+# Minimal requirements - only essential packages
+# Use this if you want the fastest install with just core functionality
+
+Flask==3.0.0
+supabase==2.18.1
+python-dotenv==1.0.0
