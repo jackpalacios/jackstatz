@@ -1,0 +1,69 @@
+# Cloudflare Tunnel configuration for JackStatz Basketball Tracker
+# This configuration preserves SSE functionality
+
+tunnel: jackstatz-tunnel
+credentials-file: /home/user/.cloudflared/jackstatz-tunnel.json
+
+# Ingress rules - order matters!
+ingress:
+  # SSE endpoint - special handling to preserve streaming
+  - hostname: your-domain.com
+    path: /events
+    service: http://127.0.0.1:8000
+    originRequest:
+      # Critical settings for SSE
+      noTLSVerify: false
+      connectTimeout: 5s
+      tlsTimeout: 5s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+      keepAliveConnections: 10
+      # Disable buffering for SSE
+      httpHostHeader: your-domain.com
+      originServerName: your-domain.com
+      # Headers for SSE
+      headers:
+        Cache-Control: "no-cache, no-store, must-revalidate"
+        Connection: "keep-alive"
+        X-Accel-Buffering: "no"
+
+  # API endpoints - no caching
+  - hostname: your-domain.com
+    path: /update_*
+    service: http://127.0.0.1:8000
+    originRequest:
+      connectTimeout: 5s
+      tlsTimeout: 5s
+      tcpKeepAlive: 30s
+
+  # Static files - can be cached
+  - hostname: your-domain.com
+    path: /static/*
+    service: http://127.0.0.1:8000
+    originRequest:
+      connectTimeout: 5s
+      tlsTimeout: 5s
+
+  # Main application
+  - hostname: your-domain.com
+    service: http://127.0.0.1:8000
+    originRequest:
+      connectTimeout: 5s
+      tlsTimeout: 5s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+      keepAliveConnections: 10
+
+  # Catch-all rule (required)
+  - service: http_status:404
+
+# Tunnel-level settings
+retries: 3
+grace-period: 30s
+
+# Logging
+loglevel: info
+logfile: /var/log/cloudflared.log
+
+# Metrics (optional)
+metrics: 127.0.0.1:8081

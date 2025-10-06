@@ -1,0 +1,38 @@
+[Unit]
+Description=JackStatz Basketball Tracker Flask Application
+After=network.target
+Wants=network.target
+
+[Service]
+Type=notify
+User=your-username
+Group=your-username
+WorkingDirectory=/path/to/jackstatz
+Environment=PATH=/path/to/jackstatz/venv/bin
+Environment=FLASK_ENV=production
+Environment=FLASK_DEBUG=False
+Environment=SUPABASE_URL=your_supabase_url
+Environment=SUPABASE_KEY=your_supabase_key
+ExecStart=/path/to/jackstatz/venv/bin/gunicorn -c gunicorn.conf.py app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=3
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=jackstatz
+
+# Security settings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/path/to/jackstatz
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+
+[Install]
+WantedBy=multi-user.target

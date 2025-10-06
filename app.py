@@ -494,4 +494,18 @@ def api_buddies():
     return jsonify(sports_buddies)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    import os
+    
+    # Production configuration
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    port = int(os.getenv('FLASK_PORT', 8000))
+    host = os.getenv('FLASK_HOST', '127.0.0.1')
+    
+    if debug_mode:
+        # Development mode
+        app.run(debug=True, host=host, port=port)
+    else:
+        # Production mode - use Gunicorn instead
+        print(f"🚀 Starting Flask app in production mode on {host}:{port}")
+        print("💡 For production, use: gunicorn -k gevent -w 1 -b 127.0.0.1:8000 app:app")
+        app.run(debug=False, host=host, port=port)
